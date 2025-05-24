@@ -77,26 +77,37 @@ class AddressBook(UserDict):
         else:
             raise KeyError("Contact not found.")
 
-    def get_upcoming_birthdays(self):
-        today = datetime.today().date()
-        upcoming = []
+def get_upcoming_birthdays(self):
+    today = datetime.today().date()
+    upcoming = []
 
-        for record in self.data.values():
-            if record.birthday:
-                bday_this_year = record.birthday.value.replace(year=today.year)
-                if bday_this_year < today:
-                    bday_this_year = bday_this_year.replace(year=today.year + 1)
-                delta = (bday_this_year - today).days
-                if 0 <= delta <= 7:
-                    greet_date = bday_this_year
-                    if greet_date.weekday() in [5, 6]:  # субота або неділя
-                        # переносимо на понеділок
-                        greet_date += timedelta(days=(7 - greet_date.weekday()))
-                    upcoming.append({
-                        "name": record.name.value,
-                        "birthday": greet_date.strftime("%d.%m.%Y")
-                    })
-        return upcoming
+    for record in self.data.values():
+        if record.birthday:
+            original_bday = record.birthday.value
+
+            try:
+                bday_this_year = original_bday.replace(year=today.year)
+            except ValueError:
+                # Обробка 29 лютого у невисокосні роки
+                bday_this_year = original_bday.replace(year=today.year, day=28)
+
+            if bday_this_year < today:
+                try:
+                    bday_this_year = original_bday.replace(year=today.year + 1)
+                except ValueError:
+                    bday_this_year = original_bday.replace(year=today.year + 1, day=28)
+
+            delta = (bday_this_year - today).days
+
+            if 0 <= delta <= 7:
+                greet_date = bday_this_year
+                if greet_date.weekday() in [5, 6]:  # субота або неділя
+                    greet_date += timedelta(days=(7 - greet_date.weekday()))
+                upcoming.append({
+                    "name": record.name.value,
+                    "birthday": greet_date.strftime("%d.%m.%Y")
+                })
+    return upcoming
     
 def input_error(func):
     def wrapper(*args, **kwargs):
