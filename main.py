@@ -38,7 +38,7 @@ class Record:
 
     def __str__(self):
         phones = ', '.join(phone.value for phone in self.phones)
-        birthday = self.birthday.value.strftime('%d.%m.%Y') if self.birthday else "Not set"
+        birthday = self.birthday.value if self.birthday else "Not set"
         return f"Name: {self.name.value}, Phones: {phones}, Birthday: {birthday}"
 
     def add_phone(self, number: str):
@@ -47,7 +47,7 @@ class Record:
         self.phones.append(Phone(number))
 
     def remove_phone(self, number: str):
-        self.phones = list(filter(lambda phone: phone == number, self.phones))
+        self.phones = [phone for phone in self.phones if phone.value != number]
 
     def edit_phone(self, old_phone: str, new_phone: str):
          for i, phone in enumerate(self.phones):
@@ -77,37 +77,36 @@ class AddressBook(UserDict):
         else:
             raise KeyError("Contact not found.")
 
-def get_upcoming_birthdays(self):
-    today = datetime.today().date()
-    upcoming = []
+    def get_upcoming_birthdays(self):
+        today = datetime.today().date()
+        upcoming = []
 
-    for record in self.data.values():
-        if record.birthday:
-            original_bday = record.birthday.value
+        for record in self.data.values():
+            if record.birthday:
+                original_bday = datetime.strptime(record.birthday.value, "%d.%m.%Y").date()
 
-            try:
-                bday_this_year = original_bday.replace(year=today.year)
-            except ValueError:
-                # Обробка 29 лютого у невисокосні роки
-                bday_this_year = original_bday.replace(year=today.year, day=28)
-
-            if bday_this_year < today:
                 try:
-                    bday_this_year = original_bday.replace(year=today.year + 1)
+                    bday_this_year = original_bday.replace(year=today.year)
                 except ValueError:
-                    bday_this_year = original_bday.replace(year=today.year + 1, day=28)
+                    bday_this_year = original_bday.replace(year=today.year, day=28)
 
-            delta = (bday_this_year - today).days
+                if bday_this_year < today:
+                    try:
+                        bday_this_year = original_bday.replace(year=today.year + 1)
+                    except ValueError:
+                        bday_this_year = original_bday.replace(year=today.year + 1, day=28)
 
-            if 0 <= delta <= 7:
-                greet_date = bday_this_year
-                if greet_date.weekday() in [5, 6]:  # субота або неділя
-                    greet_date += timedelta(days=(7 - greet_date.weekday()))
-                upcoming.append({
-                    "name": record.name.value,
-                    "birthday": greet_date.strftime("%d.%m.%Y")
-                })
-    return upcoming
+                delta = (bday_this_year - today).days
+
+                if 0 <= delta <= 7:
+                    greet_date = bday_this_year
+                    if greet_date.weekday() in [5, 6]:  # Saturday or Sunday
+                        greet_date += timedelta(days=(7 - greet_date.weekday()))
+                    upcoming.append({
+                        "name": record.name.value,
+                        "birthday": greet_date.strftime("%d.%m.%Y")
+                    })
+        return upcoming
     
 def input_error(func):
     def wrapper(*args, **kwargs):
@@ -127,7 +126,10 @@ def add_contact(args, book: AddressBook):
         book.add_record(record)
         message = "Contact added."
     if phone:
-        record.add_phone(phone)
+        try:
+            record.add_phone(phone)
+        except ValueError as e:
+            return str(e)
     return message
 
 @input_error
@@ -168,7 +170,8 @@ def show_birthday(args, book: AddressBook):
     record = book.find(name)
     if not record or not record.birthday:
         raise ValueError("Birthday not found.")
-    return f"Birthday: {record.birthday.value.strftime('%d.%m.%Y')}"
+    birthday_date = datetime.strptime(record.birthday.value, "%d.%m.%Y").date()
+    return f"Birthday: {birthday_date.strftime('%d.%m.%Y')}"
 
 @input_error
 def birthdays(args, book: AddressBook):
@@ -222,6 +225,42 @@ def main():
         else:
             print("Invalid command.")
 
+""" def test_bot():
+    print("\n--- Running Bot Tests ---")
+    book = AddressBook()
+
+    def run(command_line):
+        command, args = parse_input(command_line)
+        if command == "add":
+            return add_contact(args, book)
+        elif command == "change":
+            return change_phone(args, book)
+        elif command == "phone":
+            return show_phones(args, book)
+        elif command == "all":
+            return show_all(book)
+        elif command == "add-birthday":
+            return add_birthday(args, book)
+        elif command == "show-birthday":
+            return show_birthday(args, book)
+        elif command == "birthdays":
+            return birthdays(args, book)
+        else:
+            return "Unknown command"
+
+    # Для тестування
+    print(run("add Vitalii 1234567890"))               # Contact added.
+    print(run("add Vitalii 0987654321"))               # Contact updated.
+    print(run("phone Vitalii"))                        # Обидва телефони
+    print(run("change Vitalii 1234567890 1111111111")) # Заміна
+    print(run("phone Vitalii"))                        # Новий номер
+    print(run("add-birthday Vitalii 11.11.2002"))      # Додано ДН
+    print(run("show-birthday Vitalii"))                # Показати ДН
+    print(run("birthdays"))                         # Якщо близько — буде
+    print(run("all"))                               # Повна інформація
+
+    print("--- Tests Complete ---\n") """
 
 if __name__ == "__main__":
-    main()
+    main()      # ← вимкнути це, для запуску теста
+    #test_bot()
