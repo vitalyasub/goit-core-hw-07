@@ -182,6 +182,8 @@ def birthdays(args, book: AddressBook):
 
 def parse_input(user_input):
     parts = user_input.strip().split()
+    if not parts:
+        return "", []
     command = parts[0].lower()
     args = parts[1:]
     return command, args
@@ -193,6 +195,10 @@ def main():
     while True:
         user_input = input("Enter a command: ")
         command, args = parse_input(user_input)
+
+        if not command:
+            print("Please enter a command.")
+            continue
 
         if command in ["close", "exit"]:
             print("Good bye!")
@@ -259,7 +265,7 @@ def main():
     print(run("birthdays"))                         # Якщо близько — буде
     print(run("all"))                               # Повна інформація
 
-    print("--- Tests Complete ---\n") """
+    print("--- Tests Complete ---\n")  """
 
 if __name__ == "__main__":
     main()      # ← вимкнути це, для запуску теста
